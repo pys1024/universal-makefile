@@ -1,11 +1,12 @@
 export TOPDIR = $(shell pwd)
 
 TARGET = abc
-# LIB = pnlib
+# DYNAMIC_LIB = pnlib
+# STATIC_LIB = pnlib
 
 # export OPT = -O2
 # export EXTRA_OPT = -fno-inline
 
-export Q = 
+export Q_FLAG = 1
 
 include $(TOPDIR)/Makefile.inc
