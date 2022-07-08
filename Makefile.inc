@@ -36,7 +36,7 @@ MACROS += \
 MACRO_DEFS += $(patsubst %,-D%,$(MACROS))
 
 # Build directory
-BUILD_DIR = $(TOPDIR)/build
+BUILD_DIR ?= $(TOPDIR)/build
 
 
 ############################## Toolchain Variables ########################
@@ -156,14 +156,14 @@ STATIC_LIB := $(if $(STATIC_LIB),$(if $(findstring Linux,$(shell uname)),\
 
 ################################ Dependency Rule ##########################
 # Default action: build all
-all: submodule $(TARGET) $(DYNAMIC_LIB) $(STATIC_LIB) $(OBJECTS)
-.PHONY: all submodule clean install echo
+all: $(TARGET) $(DYNAMIC_LIB) $(STATIC_LIB) $(OBJECTS)
+.PHONY: all submodule clean cleanall install echo
 
 # Build submodules
 submodule:
 	@for dir in $(SUBDIR); do \
 	  echo -e "\033[1;36m    Building submodule... \033[0m"; \
-	  $(MAKE) all -C $${dir} -j$(CORENUM) || exit 1; \
+	  $(MAKE) all -C $${dir} || exit 1; \
 	done
 
 # Build objects
@@ -172,7 +172,7 @@ $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.cpp Makefile | $(BUILD_DIR)
-	@echo -e "\033[1;33m    CPP $<\033[0m"
+	@echo -e "\033[1;33m    CXX $<\033[0m"
 	$(Q)$(CPP) -c $(CPPFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
@@ -180,16 +180,16 @@ $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
 	$(Q)$(AS) -c $(ASMFLAGS) $< -o $@
 
 # Build library
-$(STATIC_LIB): $(OBJECTS) Makefile | $(BUILD_DIR)
+$(STATIC_LIB): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
 	@echo -e "\033[1;36m    Archiving... \033[0m"
 	$(Q)$(AR) $@ $(BUILD_DIR)/*.o
 
-$(DYNAMIC_LIB): $(OBJECTS) Makefile | $(BUILD_DIR)
+$(DYNAMIC_LIB): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
 	@echo -e "\033[1;36m    Linking... \033[0m"
 	$(Q)$(CC) $(BUILD_DIR)/*.o $(LDFLAGS) -shared -o $@
 
 # Build target
-$(TARGET): $(OBJECTS) Makefile | $(BUILD_DIR)
+$(TARGET): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
 	@echo -e "\033[1;36m    Linking... \033[0m"
 	$(Q)$(CC) $(BUILD_DIR)/*.o $(LDFLAGS) -o $@
 	$(Q)$(if $(DUMP_FLAG),$(OBJDUMP) $@ > $(TARGET).asm)
@@ -211,7 +211,6 @@ $(BUILD_DIR)/%.d: %.cpp Makefile | $(BUILD_DIR)
 	$(Q)$(CC) $(DEP_FLAG) $< > $@
 
 $(BUILD_DIR):
-	@echo -e "\033[1;36m    Compiling... \033[0m"
 	@$(MKDIR) $@
 
 echo:
@@ -234,6 +233,10 @@ install: all
 
 # Clean up
 clean:
+	@echo -e "\033[1;31m    Clean up... \033[0m"
+	$(Q)$(RM) $(TARGET) $(DYNAMIC_LIB) $(STATIC_LIB) $(OBJECTS)
+
+cleanall:
 	@echo -e "\033[1;31m    Clean up all... \033[0m"
 	$(Q)$(RM) $(BUILD_DIR)
 
