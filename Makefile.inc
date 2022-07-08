@@ -18,8 +18,8 @@ CPP_SRC +=
 ASM_SRC +=
 
 C_SRC += $(foreach dir,$(C_SRC_DIR),$(shell find $(dir) -type f -name *.c))
-CPP_SRC += $(foreach dir,$(CPP_SRC_DIR),$(shell find $(dir) -type f -name *.c))
-ASM_SRC += $(foreach dir,$(ASM_SRC_DIR),$(shell find $(dir) -type f -name *.c))
+CPP_SRC += $(foreach dir,$(CPP_SRC_DIR),$(shell find $(dir) -type f -name *.cpp))
+ASM_SRC += $(foreach dir,$(ASM_SRC_DIR),$(shell find $(dir) -type f -name *.s))
 #************* Include *************
 INCLUDE_DIR += \
 
@@ -162,35 +162,35 @@ all: submodule $(TARGET) $(DYNAMIC_LIB) $(STATIC_LIB) $(OBJECTS)
 # Build submodules
 submodule:
 	@for dir in $(SUBDIR); do \
-	  echo "\033[1;36m    Building submodule... \033[0m"; \
+	  echo -e "\033[1;36m    Building submodule... \033[0m"; \
 	  $(MAKE) all -C $${dir} -j$(CORENUM) || exit 1; \
 	done
 
 # Build objects
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
-	@echo "\033[1;33m    CC $<\033[0m"
+	@echo -e "\033[1;33m    CC $<\033[0m"
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.cpp Makefile | $(BUILD_DIR)
-	@echo "\033[1;33m    CPP $<\033[0m"
+	@echo -e "\033[1;33m    CPP $<\033[0m"
 	$(Q)$(CPP) -c $(CPPFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
-	@echo "\033[1;33m    ASM $<\033[0m"
+	@echo -e "\033[1;33m    ASM $<\033[0m"
 	$(Q)$(AS) -c $(ASMFLAGS) $< -o $@
 
 # Build library
 $(STATIC_LIB): $(OBJECTS) Makefile | $(BUILD_DIR)
-	@echo "\033[1;36m    Archiving... \033[0m"
+	@echo -e "\033[1;36m    Archiving... \033[0m"
 	$(Q)$(AR) $@ $(BUILD_DIR)/*.o
 
 $(DYNAMIC_LIB): $(OBJECTS) Makefile | $(BUILD_DIR)
-	@echo "\033[1;36m    Linking... \033[0m"
+	@echo -e "\033[1;36m    Linking... \033[0m"
 	$(Q)$(CC) $(BUILD_DIR)/*.o $(LDFLAGS) -shared -o $@
 
 # Build target
 $(TARGET): $(OBJECTS) Makefile | $(BUILD_DIR)
-	@echo "\033[1;36m    Linking... \033[0m"
+	@echo -e "\033[1;36m    Linking... \033[0m"
 	$(Q)$(CC) $(BUILD_DIR)/*.o $(LDFLAGS) -o $@
 	$(Q)$(if $(DUMP_FLAG),$(OBJDUMP) $@ > $(TARGET).asm)
 	$(Q)$(if $(HEX_FLAG),$(HEX) $@ $(TARGET).hex)
@@ -198,7 +198,7 @@ $(TARGET): $(OBJECTS) Makefile | $(BUILD_DIR)
 	@echo "======================================================="
 	$(Q)$(SZ) $@
 	@echo "======================================================="
-	@echo "\033[1;32mBuild Completed!\033[0m"
+	@echo -e "\033[1;32mBuild Completed!\033[0m"
 
 # Build dependencies
 $(BUILD_DIR)/%.d: %.s Makefile | $(BUILD_DIR)
@@ -211,7 +211,7 @@ $(BUILD_DIR)/%.d: %.cpp Makefile | $(BUILD_DIR)
 	$(Q)$(CC) $(DEP_FLAG) $< > $@
 
 $(BUILD_DIR):
-	@echo "\033[1;36m    Compiling... \033[0m"
+	@echo -e "\033[1;36m    Compiling... \033[0m"
 	@$(MKDIR) $@
 
 echo:
@@ -227,14 +227,14 @@ echo:
 	@echo corenum: $(CORENUM)
 
 install: all
-	@echo "\033[1;36m    Installing... \033[0m"
+	@echo -e "\033[1;36m    Installing... \033[0m"
 	@$(if $(TARGET),cp $(TARGET) $(TOPDIR)/)
 	@$(if $(DYNAMIC_LIB),cp $(DYNAMIC_LIB) $(TOPDIR)/)
 	@$(if $(STATIC_LIB),cp $(STATIC_LIB) $(TOPDIR)/)
 
 # Clean up
 clean:
-	@echo "\033[1;31m    Clean up all... \033[0m"
+	@echo -e "\033[1;31m    Clean up all... \033[0m"
 	$(Q)$(RM) $(BUILD_DIR)
 
 # Source file dependencies
