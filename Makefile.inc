@@ -53,17 +53,17 @@ HEX_FLAG = 1
 BIN_FLAG = 1
 
 Q = $(if $(Q_FLAG),@)
-CORENUM = $(shell cat /proc/cpuinfo | grep "processor" | wc -l)
-BUILD_TIME = $(shell date +%Y%m%d%H%M%S)
+export CORENUM ?= $(shell cat /proc/cpuinfo | grep "processor" | wc -l)
+export BUILD_TIME ?= $(shell date +%Y%m%d%H%M%S)
 ifeq ($(shell git rev-parse --is-inside-work-tree 2> /dev/null),true)
-COMMIT_ID = $(shell git rev-parse --short HEAD)
+export COMMIT_ID ?= $(shell git rev-parse --short HEAD)
 else
-COMMIT_ID = unknown
+export COMMIT_ID ?= unknown
 endif
 MACROS += BUILD_INFO=$(COMMIT_ID)_$(BUILD_TIME)
 #************* Toolchain *************
-BINPATH = $(dir $(shell which arm-linux-gnueabihf-gcc))
-PREFIX = arm-linux-gnueabihf-
+BINPATH ?= $(dir $(shell which arm-linux-gnueabihf-gcc))
+PREFIX ?= arm-linux-gnueabihf-
 MKDIR = mkdir -p
 RM = rm -rf
 MAKE = make
