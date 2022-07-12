@@ -37,6 +37,7 @@ MACRO_DEFS += $(patsubst %,-D%,$(MACROS))
 
 # Build directory
 BUILD_DIR ?= $(TOPDIR)/build
+DELIVERY_DIR ?= $(TOPDIR)/delivery
 
 
 ############################## Toolchain Variables ########################
@@ -67,6 +68,7 @@ PREFIX ?= arm-linux-gnueabihf-
 MKDIR = mkdir -p
 RM = rm -rf
 MAKE = make
+ECHO = $(shell which echo) -e
 FIND = find . -type f -name
 # Build tools
 CC = $(BINPATH)/$(PREFIX)gcc
@@ -106,10 +108,11 @@ MCU = $(CPU) $(FPU) $(FLOAT_ABI)
 WARN_FLAGS = -Wall
 
 #************* Compiler Falgs *************
+EX_FLAGS += --std=c11
 # Compiler gcc flags
-ASMFLAGS += $(MCU) $(MACRO_DEFS) $(INCLUDES) $(OPT_FLAGS) $(WARN_FLAGS)
-CFLAGS += $(MCU) $(MACRO_DEFS) $(INCLUDES) $(OPT_FLAGS) $(WARN_FLAGS)
-CPPFLAGS += $(MCU) $(MACRO_DEFS) $(INCLUDES) $(OPT_FLAGS) $(WARN_FLAGS)
+ASMFLAGS += $(MCU) $(MACRO_DEFS) $(INCLUDES) $(OPT_FLAGS) $(WARN_FLAGS) $(EX_FLAGS)
+CFLAGS += $(MCU) $(MACRO_DEFS) $(INCLUDES) $(OPT_FLAGS) $(WARN_FLAGS) $(EX_FLAGS)
+CPPFLAGS += $(MCU) $(MACRO_DEFS) $(INCLUDES) $(OPT_FLAGS) $(WARN_FLAGS) $(EX_FLAGS)
 
 #************* Dependency Flags *************
 DEP_FLAG = -MM -MP -MT"$@ $(@:%.d=%.o)" $(MACRO_DEFS) $(INCLUDES)
@@ -162,35 +165,35 @@ all: $(TARGET) $(DYNAMIC_LIB) $(STATIC_LIB) $(OBJECTS)
 # Build submodules
 submodule:
 	@for dir in $(SUBDIR); do \
-	  echo -e "\033[1;36m    Building submodule... \033[0m"; \
+	  $(ECHO) "\033[1;36m    Building submodule... \033[0m"; \
 	  $(MAKE) all -C $${dir} || exit 1; \
 	done
 
 # Build objects
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
-	@echo -e "\033[1;33m    CC $<\033[0m"
+	@$(ECHO) "\033[1;33m    CC $<\033[0m"
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.cpp Makefile | $(BUILD_DIR)
-	@echo -e "\033[1;33m    CXX $<\033[0m"
+	@$(ECHO) "\033[1;33m    CXX $<\033[0m"
 	$(Q)$(CPP) -c $(CPPFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
-	@echo -e "\033[1;33m    ASM $<\033[0m"
+	@$(ECHO) "\033[1;33m    ASM $<\033[0m"
 	$(Q)$(AS) -c $(ASMFLAGS) $< -o $@
 
 # Build library
 $(STATIC_LIB): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
-	@echo -e "\033[1;36m    Archiving... \033[0m"
+	@$(ECHO) "\033[1;36m    Archiving... \033[0m"
 	$(Q)$(AR) $@ $(BUILD_DIR)/*.o
 
 $(DYNAMIC_LIB): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
-	@echo -e "\033[1;36m    Linking... \033[0m"
+	@$(ECHO) "\033[1;36m    Linking... \033[0m"
 	$(Q)$(CC) $(BUILD_DIR)/*.o $(LDFLAGS) -shared -o $@
 
 # Build target
 $(TARGET): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
-	@echo -e "\033[1;36m    Linking... \033[0m"
+	@$(ECHO) "\033[1;36m    Linking... \033[0m"
 	$(Q)$(CC) $(BUILD_DIR)/*.o $(LDFLAGS) -o $@
 	$(Q)$(if $(DUMP_FLAG),$(OBJDUMP) $@ > $(TARGET).asm)
 	$(Q)$(if $(HEX_FLAG),$(HEX) $@ $(TARGET).hex)
@@ -198,7 +201,7 @@ $(TARGET): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
 	@echo "======================================================="
 	$(Q)$(SZ) $@
 	@echo "======================================================="
-	@echo -e "\033[1;32mBuild Completed!\033[0m"
+	@$(ECHO) "\033[1;32mBuild Completed!\033[0m"
 
 # Build dependencies
 $(BUILD_DIR)/%.d: %.s Makefile | $(BUILD_DIR)
@@ -213,6 +216,9 @@ $(BUILD_DIR)/%.d: %.cpp Makefile | $(BUILD_DIR)
 $(BUILD_DIR):
 	@$(MKDIR) $@
 
+$(DELIVERY_DIR):
+	@$(MKDIR) $@
+
 echo:
 	@echo target: $(TARGET)
 	@echo dynamic_lib: $(DYNAMIC_LIB)
@@ -225,20 +231,22 @@ echo:
 	@echo ldflags: $(LDFLAGS)
 	@echo corenum: $(CORENUM)
 
-install: all
-	@echo -e "\033[1;36m    Installing... \033[0m"
-	@$(if $(TARGET),cp $(TARGET) $(TOPDIR)/)
-	@$(if $(DYNAMIC_LIB),cp $(DYNAMIC_LIB) $(TOPDIR)/)
-	@$(if $(STATIC_LIB),cp $(STATIC_LIB) $(TOPDIR)/)
+install: all | $(DELIVERY_DIR)
+	@$(if $(TARGET),$(ECHO) "\033[1;36m    Installing... \033[0m")
+	@for dir in $(SUBDIR); do \
+	  $(MAKE) install -C $${dir} || exit 1; \
+	done
+	@$(if $(TARGET),cp $(TARGET) $(DELIVERY_DIR)/)
+	@$(if $(DYNAMIC_LIB),cp $(DYNAMIC_LIB) $(DELIVERY_DIR)/)
+	@$(if $(STATIC_LIB),cp $(STATIC_LIB) $(DELIVERY_DIR)/)
 
 # Clean up
 clean:
-	@echo -e "\033[1;31m    Clean up... \033[0m"
-	$(Q)$(RM) $(TARGET) $(DYNAMIC_LIB) $(STATIC_LIB) $(OBJECTS)
-
-cleanall:
-	@echo -e "\033[1;31m    Clean up all... \033[0m"
-	$(Q)$(RM) $(BUILD_DIR)
+	@$(if $(TARGET),$(ECHO) "\033[1;31m    Clean up all... \033[0m")
+	@for dir in $(SUBDIR); do \
+	  $(MAKE) clean -C $${dir} || exit 1; \
+	done
+	$(Q)$(RM) $(TARGET) $(DYNAMIC_LIB) $(STATIC_LIB) $(OBJECTS) $(DELIVERY_DIR)
 
 # Source file dependencies
 -include $(DEPENDS)
