@@ -165,35 +165,35 @@ all: $(TARGET) $(DYNAMIC_LIB) $(STATIC_LIB) $(OBJECTS)
 # Build submodules
 submodule:
 	@for dir in $(SUBDIR); do \
-	  $(ECHO) "\033[1;36m    Building submodule... \033[0m"; \
+	  $(ECHO) "\033[1;34m    Building submodule... \033[0m"; \
 	  $(MAKE) all -C $${dir} || exit 1; \
 	done
 
 # Build objects
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
-	@$(ECHO) "\033[1;33m    CC $<\033[0m"
+	@$(ECHO) "\033[1;33m    CC   $<\033[0m"
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.cpp Makefile | $(BUILD_DIR)
-	@$(ECHO) "\033[1;33m    CXX $<\033[0m"
+	@$(ECHO) "\033[1;33m    CXX  $<\033[0m"
 	$(Q)$(CPP) -c $(CPPFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
-	@$(ECHO) "\033[1;33m    ASM $<\033[0m"
+	@$(ECHO) "\033[1;33m    ASM  $<\033[0m"
 	$(Q)$(AS) -c $(ASMFLAGS) $< -o $@
 
 # Build library
 $(STATIC_LIB): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
-	@$(ECHO) "\033[1;36m    Archiving... \033[0m"
+	@$(ECHO) "\033[1;36m    AR   $@\033[0m"
 	$(Q)$(AR) $@ $(BUILD_DIR)/*.o
 
 $(DYNAMIC_LIB): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
-	@$(ECHO) "\033[1;36m    Linking... \033[0m"
+	@$(ECHO) "\033[1;36m    LINK $@\033[0m"
 	$(Q)$(CC) $(BUILD_DIR)/*.o $(LDFLAGS) -shared -o $@
 
 # Build target
 $(TARGET): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
-	@$(ECHO) "\033[1;36m    Linking... \033[0m"
+	@$(ECHO) "\033[1;36m    LINK $@\033[0m"
 	$(Q)$(CC) $(BUILD_DIR)/*.o $(LDFLAGS) -o $@
 	$(Q)$(if $(DUMP_FLAG),$(OBJDUMP) $@ > $(TARGET).asm)
 	$(Q)$(if $(HEX_FLAG),$(HEX) $@ $(TARGET).hex)
@@ -205,12 +205,15 @@ $(TARGET): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
 
 # Build dependencies
 $(BUILD_DIR)/%.d: %.s Makefile | $(BUILD_DIR)
+	@$(ECHO) "\033[1;35m    DEP  $<\033[0m"
 	$(Q)$(CC) $(DEP_FLAG) $< > $@
 
 $(BUILD_DIR)/%.d: %.c Makefile | $(BUILD_DIR)
+	@$(ECHO) "\033[1;35m    DEP  $<\033[0m"
 	$(Q)$(CC) $(DEP_FLAG) $< > $@
 
 $(BUILD_DIR)/%.d: %.cpp Makefile | $(BUILD_DIR)
+	@$(ECHO) "\033[1;35m    DEP  $<\033[0m"
 	$(Q)$(CC) $(DEP_FLAG) $< > $@
 
 $(BUILD_DIR):
@@ -231,8 +234,8 @@ echo:
 	@echo ldflags: $(LDFLAGS)
 	@echo corenum: $(CORENUM)
 
-install: all | $(DELIVERY_DIR)
-	@$(if $(TARGET),$(ECHO) "\033[1;36m    Installing... \033[0m")
+install: | $(DELIVERY_DIR)
+	@$(if $(TARGET),$(ECHO) "\033[1;34m    INSTALL $(DELIVERY_DIR)\033[0m")
 	@for dir in $(SUBDIR); do \
 	  $(MAKE) install -C $${dir} || exit 1; \
 	done
