@@ -36,6 +36,7 @@ MACROS += \
 MACRO_DEFS += $(patsubst %,-D%,$(MACROS))
 
 # Build directory
+MAKEFILE ?= Makefile $(TOPDIR)/Makefile.inc
 BUILD_DIR ?= $(TOPDIR)/build
 DELIVERY_DIR ?= $(TOPDIR)/delivery
 
@@ -170,29 +171,29 @@ submodule:
 	done
 
 # Build objects
-$(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.c $(MAKEFILE) | $(BUILD_DIR)
 	@$(ECHO) "\033[1;33m    CC   $<\033[0m"
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/%.o: %.cpp Makefile | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.cpp $(MAKEFILE) | $(BUILD_DIR)
 	@$(ECHO) "\033[1;33m    CXX  $<\033[0m"
 	$(Q)$(CPP) -c $(CPPFLAGS) $< -o $@
 
-$(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.s $(MAKEFILE) | $(BUILD_DIR)
 	@$(ECHO) "\033[1;33m    ASM  $<\033[0m"
 	$(Q)$(AS) -c $(ASMFLAGS) $< -o $@
 
 # Build library
-$(STATIC_LIB): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
+$(STATIC_LIB): submodule $(OBJECTS) $(MAKEFILE) | $(BUILD_DIR)
 	@$(ECHO) "\033[1;36m    AR   $@\033[0m"
 	$(Q)$(AR) $@ $(BUILD_DIR)/*.o
 
-$(DYNAMIC_LIB): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
+$(DYNAMIC_LIB): submodule $(OBJECTS) $(MAKEFILE) | $(BUILD_DIR)
 	@$(ECHO) "\033[1;36m    LINK $@\033[0m"
 	$(Q)$(CC) $(BUILD_DIR)/*.o $(LDFLAGS) -shared -o $@
 
 # Build target
-$(TARGET): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
+$(TARGET): submodule $(OBJECTS) $(MAKEFILE) | $(BUILD_DIR)
 	@$(ECHO) "\033[1;36m    LINK $@\033[0m"
 	$(Q)$(CC) $(BUILD_DIR)/*.o $(LDFLAGS) -o $@
 	$(Q)$(if $(DUMP_FLAG),$(OBJDUMP) $@ > $(TARGET).asm)
@@ -204,15 +205,15 @@ $(TARGET): submodule $(OBJECTS) Makefile | $(BUILD_DIR)
 	@$(ECHO) "\033[1;32mBuild Completed!\033[0m"
 
 # Build dependencies
-$(BUILD_DIR)/%.d: %.s Makefile | $(BUILD_DIR)
+$(BUILD_DIR)/%.d: %.s $(MAKEFILE) | $(BUILD_DIR)
 	@$(ECHO) "\033[1;35m    DEP  $<\033[0m"
 	$(Q)$(CC) $(DEP_FLAG) $< > $@
 
-$(BUILD_DIR)/%.d: %.c Makefile | $(BUILD_DIR)
+$(BUILD_DIR)/%.d: %.c $(MAKEFILE) | $(BUILD_DIR)
 	@$(ECHO) "\033[1;35m    DEP  $<\033[0m"
 	$(Q)$(CC) $(DEP_FLAG) $< > $@
 
-$(BUILD_DIR)/%.d: %.cpp Makefile | $(BUILD_DIR)
+$(BUILD_DIR)/%.d: %.cpp $(MAKEFILE) | $(BUILD_DIR)
 	@$(ECHO) "\033[1;35m    DEP  $<\033[0m"
 	$(Q)$(CC) $(DEP_FLAG) $< > $@
 
